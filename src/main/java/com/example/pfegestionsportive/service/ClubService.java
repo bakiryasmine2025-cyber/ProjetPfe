@@ -1,100 +1,162 @@
 package com.example.pfegestionsportive.service;
-import com.example.pfegestionsportive.model.Club;
-import com.example.pfegestionsportive.model.Federation;
+
+import com.example.pfegestionsportive.dto.ClubDTO;
+import com.example.pfegestionsportive.dto.request.SuspendreDTO;
+import com.example.pfegestionsportive.model.entity.Club;
+import com.example.pfegestionsportive.model.entity.Federation;
+import com.example.pfegestionsportive.model.enums.ClubStatus;
 import com.example.pfegestionsportive.repository.ClubRepository;
 import com.example.pfegestionsportive.repository.FederationRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+public class ClubService {
 
-public class ClubService implements ClubInterfaceService {
     private final ClubRepository clubRepository;
     private final FederationRepository federationRepository;
 
-    @Override
-    public Club createClub( Club club) {
-        try {
-            System.out.println(":club"+club);
-            if (club!= null && club.getFederation() != null && club.getFederation().getId()!= null) {
-                Long federationId = club.getFederation().getId();
-                Federation federation = federationRepository.findById(federationId)
-                        .orElseThrow(() -> new FederationNotFoundException("Fédération non trouvée avec l'id: " + federationId));
-                club.setFederation(federation);
-                Club savedClub = clubRepository.save(club);
-                return savedClub;
+    // ─── Lire ─────────────────────────────────────────────────────────────────
 
-            }
-
-        } catch (FederationNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la création du club: " + e.getMessage());
-        }
-        return null ;
+    public List<ClubDTO> getAll() {
+        return clubRepository.findAll()
+                .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    @Override
-    public List<Club> getAllClubs() {
-        try {
-            return clubRepository.findAll();
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération des clubs: " + e.getMessage());
-        }
+    public List<ClubDTO> getByFederation(UUID federationId) {
+        return clubRepository.findByFederationId(federationId)
+                .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    @Override
-    public List<Club> getClubsByFederation(Long federationId) {
-        try {
-            return clubRepository.findByFederationId(federationId);
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération des clubs de la fédération: " + e.getMessage());
-        }
+    public ClubDTO getById(UUID id) {
+        return clubRepository.findById(id)
+                .map(this::toDTO)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
     }
 
-    @Override
-    public Club getClubById(Long id) {
-        try {
-            return clubRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Club non trouvé avec l'id: " + id));
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération du club avec l'id: " + id + " - " + e.getMessage());
-        }
+    // ─── Créer ────────────────────────────────────────────────────────────────
+
+    public ClubDTO create(ClubDTO dto) {
+        Federation federation = federationRepository
+                .findById(dto.getFederationId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Fédération non trouvée"
+                ));
+
+        Club club = Club.builder()
+                .nom(dto.getNom())
+                .nomCourt(dto.getNomCourt())
+                .ville(dto.getVille())
+                .region(dto.getRegion())
+                .anneeFondation(dto.getAnneeFondation())
+                .urlLogo(dto.getUrlLogo())
+                .statut(ClubStatus.ACTIF)
+                .federation(federation)
+                .dateCreation(LocalDateTime.now())
+                .build();
+
+        return toDTO(clubRepository.save(club));
     }
 
-    @Override
-    public Club updateClub(Long id, Club club) {
-        try {
-            Club existing = getClubById(id);
-            existing.setNom(club.getNom());
-            existing.setVille(club.getVille());
-            existing.setRegion(club.getRegion());
-            existing.setAnneeFondation(club.getAnneeFondation());
-            existing.setStatut(club.getStatut());
-            return clubRepository.save(existing);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la mise à jour du club avec l'id: " + id + " - " + e.getMessage());
-        }
+    // ─── Modifier ────────────────────────────────────────────────────────────
+
+    public ClubDTO update(UUID id, ClubDTO dto) {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
+
+        club.setNom(dto.getNom());
+        club.setNomCourt(dto.getNomCourt());
+        club.setVille(dto.getVille());
+        club.setRegion(dto.getRegion());
+        club.setAnneeFondation(dto.getAnneeFondation());
+        club.setUrlLogo(dto.getUrlLogo());
+
+        return toDTO(clubRepository.save(club));
     }
 
-    @Override
-    public void deleteClub(Long id) {
-        try {
-            if (!clubRepository.existsById(id)) {
-                throw new RuntimeException("Club non trouvé avec l'id: " + id);
-            }
-            clubRepository.deleteById(id);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la suppression du club avec l'id: " + id + " - " + e.getMessage());
-        }
+    // ─── User story 3.1 — Suspendre club ─────────────────────────────────────
+
+    public ClubDTO suspendre(UUID id, SuspendreDTO dto) {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
+
+        club.suspendre(dto.getMotif());
+        return toDTO(clubRepository.save(club));
     }
 
+    // ─── User story 3.1 — Activer club ───────────────────────────────────────
+
+    public ClubDTO activer(UUID id) {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
+
+        club.activer();
+        return toDTO(clubRepository.save(club));
+    }
+
+    // ─── Désactiver ───────────────────────────────────────────────────────────
+
+    public ClubDTO desactiver(UUID id) {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
+
+        club.desactiver();
+        return toDTO(clubRepository.save(club));
+    }
+
+    // ─── Supprimer ───────────────────────────────────────────────────────────
+
+    public void delete(UUID id) {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Club non trouvé"
+                ));
+
+        if (club.getStatut() == ClubStatus.ACTIF) {
+            throw new IllegalStateException(
+                    "Suspendez le club avant de le supprimer"
+            );
+        }
+
+        clubRepository.deleteById(id);
+    }
+
+    // ─── Mapper ──────────────────────────────────────────────────────────────
+
+    private ClubDTO toDTO(Club c) {
+        return ClubDTO.builder()
+                .id(c.getId())
+                .nom(c.getNom())
+                .nomCourt(c.getNomCourt())
+                .ville(c.getVille())
+                .region(c.getRegion())
+                .anneeFondation(c.getAnneeFondation())
+                .urlLogo(c.getUrlLogo())
+                .statut(c.getStatut())
+                .motifSuspension(c.getMotifSuspension())
+                .dateSuspension(c.getDateSuspension())
+                .dateCreation(c.getDateCreation())
+                .federationId(c.getFederation() != null ?
+                        c.getFederation().getId() : null)
+                .nomFederation(c.getFederation() != null ?
+                        c.getFederation().getNom() : null)
+                .build();
+    }
 }

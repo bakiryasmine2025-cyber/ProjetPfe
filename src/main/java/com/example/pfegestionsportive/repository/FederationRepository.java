@@ -1,11 +1,15 @@
 package com.example.pfegestionsportive.repository;
-import com.example.pfegestionsportive.model.Federation;
-import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 
-public interface FederationRepository extends JpaRepository<Federation,Long> {
-    Optional<Federation> findByCode(String code);
-    Optional<Federation> findByNom(String nom);
-    Boolean existsByCode(String code);
-    Boolean existsByNom(String nom);
+import com.example.pfegestionsportive.model.entity.Federation;
+import com.example.pfegestionsportive.model.enums.FederationStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface FederationRepository extends JpaRepository<Federation, UUID> {
+    List<Federation> findByStatut(FederationStatus statut);
+    boolean existsByCode(String code);
+    long countByFederationId(UUID federationId);
 }

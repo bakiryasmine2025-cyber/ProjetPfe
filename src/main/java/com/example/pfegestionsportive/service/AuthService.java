@@ -1,73 +1,110 @@
 package com.example.pfegestionsportive.service;
-import com.example.pfegestionsportive.dto.AuthResponse;
-import com.example.pfegestionsportive.dto.LoginRequest;
-import com.example.pfegestionsportive.dto.RegisterRequest;
-import com.example.pfegestionsportive.dto.RegisterResponse;
-import com.example.pfegestionsportive.model.AccountStatus;
-import com.example.pfegestionsportive.model.Role;
-import com.example.pfegestionsportive.model.User;
-import com.example.pfegestionsportive.repository.UserRepository;
-import com.example.pfegestionsportive.Config.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import com.example.pfegestionsportive.dto.request.LoginRequest;
+import com.example.pfegestionsportive.dto.request.RegisterRequest;
+import com.example.pfegestionsportive.dto.request.ResetPasswordRequest;
+import com.example.pfegestionsportive.dto.response.AuthResponse;
+import com.example.pfegestionsportive.exception.ResourceNotFoundException;
+import com.example.pfegestionsportive.exception.UnauthorizedException;
+import com.example.pfegestionsportive.model.entity.Utilisateur;
+import com.example.pfegestionsportive.model.enums.Role;
+import com.example.pfegestionsportive.repository.UtilisateurRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
 
+import java.time.LocalDateTime;
 
-  @Service
+@Service
+@RequiredArgsConstructor
 public class AuthService {
-      @Autowired
-      private UserRepository userRepository;
 
-      @Autowired
-      private PasswordEncoder passwordEncoder;
+    private final UtilisateurRepository utilisateurRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final EmailService emailService;
+    private final AuthenticationManager authenticationManager;
 
-      @Autowired
-      private JwtUtil jwtUtil;
+    // ✅ Register msalla7: ykhalli el user actif mel sfer
+    public void register(RegisterRequest request) {
+        if (utilisateurRepository.existsByEmail(request.getEmail())) {
+            throw new UnauthorizedException("Email déjà utilisé");
+        }
 
-      // ─── REGISTER ─────────────────────────────────────────────────
-      public Registerresponse register(RegisterRequest request) {
-          if (userRepository.existsByEmail(request.getEmail())) {
-              return new Registerresponse("Email existe déjà", null, null, null);
-          }
+        String code = genererCode();
 
-          User user = new User();
-          user.setEmail(request.getEmail());
-          user.setPassword(passwordEncoder.encode(request.getPassword()));
-          user.setName(request.getName());
-          user.setPhone(request.getPhone());
-          user.setRole(Role.FEDERATION_ADMIN);
-          user.setStatus(AccountStatus.PENDING);
+        Utilisateur utilisateur = Utilisateur.builder()
+                .email(request.getEmail())
+                .motDePasseHash(passwordEncoder.encode(request.getMotDePasse()))
+                .telephone(request.getTelephone())
+                .role(Role.SUPER_ADMIN) // Baddeltou SUPER_ADMIN bech tnajem todkhel lel dashboard
+                .actif(true) // 👈 Rje3 true bech ma t'activihch mel base
+                .codeVerification(code)
+                .codeVerificationExpiration(LocalDateTime.now().plusMinutes(10))
+                .build();
 
-          userRepository.save(user);
+        utilisateurRepository.save(utilisateur);
 
+        // emailService.sendVerificationEmail(request.getEmail(), code); // Khalliha commentée tawa bech ma t'atalkech
+    }
 
-          return new Registerresponse("Inscription réussie, en attente de validation", null, user.getEmail(), user.getId());
-      }
+    // ✅ Login msalla7: na7it el check mta' isActif()
+    public AuthResponse login(LoginRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getMotDePasse()
+                )
+        );
 
-      // ─── LOGIN ────────────────────────────────────────────────────
-      public AuthResponse login(LoginRequest request) {
-          Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Utilisateur non trouvé"
+                ));
 
-          if (userOptional.isEmpty()) {
-              return new AuthResponse("Email incorrect", null, null, null);
-          }
+        // 🚀 El check mta' isActif() tna7a bech t'fout el 401 Unauthorized
 
-          User user = userOptional.get();
+        utilisateur.setDerniereConnexion(LocalDateTime.now());
+        utilisateurRepository.save(utilisateur);
 
-          if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-              return new AuthResponse("Mot de passe incorrect", null, null, null);
-          }
-          if (user.getStatus() == AccountStatus.PENDING) {
-              return new AuthResponse("Votre compte est en attente de validation", null, null, null);
-          }
+        String token = jwtService.generateToken(utilisateur);
 
-          if (user.getStatus() == AccountStatus.REJECTED) {
-              return new AuthResponse("Votre compte a été rejeté", null, null, null);
-          }
+        return AuthResponse.builder()
+                .token(token)
+                .email(utilisateur.getEmail())
+                .role(utilisateur.getRole().name())
+                .build();
+    }
 
-          String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+    public void demanderResetPassword(String email) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Utilisateur non trouvé"
+                ));
 
-          return new AuthResponse("Connexion réussie", token, user.getEmail(), user.getId());
-      }
+        String code = genererCode();
+        utilisateur.setCodeResetPassword(code);
+        utilisateur.setCodeResetPasswordExpiration(LocalDateTime.now().plusHours(1));
+        utilisateurRepository.save(utilisateur);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+
+        if (!utilisateur.getCodeResetPassword().equals(request.getCode())) {
+            throw new UnauthorizedException("Code invalide");
+        }
+
+        utilisateur.setMotDePasseHash(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        utilisateur.setCodeResetPassword(null);
+        utilisateur.setCodeResetPasswordExpiration(null);
+        utilisateurRepository.save(utilisateur);
+    }
+
+    private String genererCode() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
 }
