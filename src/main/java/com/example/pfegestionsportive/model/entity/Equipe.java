@@ -1,12 +1,13 @@
 package com.example.pfegestionsportive.model.entity;
-import com.example.pfegestionsportive.model.enums.Gender;
-import com.example.pfegestionsportive.model.enums.TeamCategory;
-import jakarta.persistence.*;
-import lombok.*;
 
-import java.time.LocalDateTime;
+import com.example.pfegestionsportive.model.enums.Gender;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "equipes")
@@ -15,54 +16,24 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Equipe {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
-    @Column(nullable = false)
     private String nom;
 
     @Enumerated(EnumType.STRING)
-    private TeamCategory categorie;
+    private Gender categorie; // MASCULINE, FEMININE
 
-    @Enumerated(EnumType.STRING)
-    private Gender genre;
-
-    private String trancheAge;
-
-    private String saison;
-
-    private LocalDateTime dateCreation;
-
-    private LocalDateTime dateMiseAJour;
-
-    // ✅ Relation avec Club
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "club_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "club_id")
     private Club club;
 
-    // ✅ Relation avec AffectationEquipe
-    @OneToMany(mappedBy = "equipe", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<AffectationEquipe> affectations;
-
-    // ✅ Matchs Domicile
-    @OneToMany(mappedBy = "equipeDomicile", fetch = FetchType.LAZY)
-    private List<Match> matchsDomicile;
-
-    @OneToMany(mappedBy = "equipeExterieur", fetch = FetchType.LAZY)
-    private List<Match> matchsExterieur;
-
-    @PrePersist
-    public void prePersist() {
-        this.dateCreation = LocalDateTime.now();
-        this.dateMiseAJour = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.dateMiseAJour = LocalDateTime.now();
-    }
-
-
+    @ManyToMany
+    @JoinTable(
+            name = "equipe_joueurs",
+            joinColumns = @JoinColumn(name = "equipe_id"),
+            inverseJoinColumns = @JoinColumn(name = "joueur_id")
+    )
+    private List<Joueur> joueurs;
 }

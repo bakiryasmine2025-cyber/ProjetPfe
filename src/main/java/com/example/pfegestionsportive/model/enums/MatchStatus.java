@@ -1,10 +1,8 @@
 package com.example.pfegestionsportive.model.enums;
 
 public enum MatchStatus {
-
-    PLANIFIE,
-    EN_COURS,
-    TERMINE,
-    REPORTE,
-    ANNULE
+    PROGRAMME, // Scheduled
+    EN_COURS,  // In Progress
+    TERMINE,   // Finished
+    REPORTE    // Postponed
 }

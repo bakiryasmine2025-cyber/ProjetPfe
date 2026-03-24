@@ -1,153 +1,104 @@
 package com.example.pfegestionsportive.service;
 
+import com.example.pfegestionsportive.dto.request.MatchRequest;
+import com.example.pfegestionsportive.dto.response.MatchResponse;
 import com.example.pfegestionsportive.model.entity.*;
 import com.example.pfegestionsportive.model.enums.MatchStatus;
 import com.example.pfegestionsportive.repository.*;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class MatchService {
 
     private final MatchRepository matchRepository;
-    private final EquipeRepository equipeRepository;
     private final CompetitionRepository competitionRepository;
-
-    // ── CRUD ──────────────────────────────────────────────
+    private final EquipeRepository equipeRepository;
+    private final ArbitreRepository arbitreRepository;
 
     @Transactional(readOnly = true)
-    public List<Match> getAll() {
-        return matchRepository.findAll();
+    public List<MatchResponse> getAllMatches() {
+        return matchRepository.findAll().stream()
+                .sorted(Comparator.comparing(Match::getDateMatch).reversed())
+                .map(this::toMatchResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public Match getById(UUID id) {
+    public MatchResponse getMatchById(String id) {
         return matchRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Match introuvable : " + id));
+                .map(this::toMatchResponse)
+                .orElseThrow(() -> new RuntimeException("Match non trouvé"));
     }
 
-    public Match create(UUID competitionId, UUID equipeDomId, UUID equipeExtId, Match match) {
-        Competition competition = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new EntityNotFoundException("Compétition introuvable"));
-        Equipe dom = equipeRepository.findById(equipeDomId)
-                .orElseThrow(() -> new EntityNotFoundException("Équipe domicile introuvable"));
-        Equipe ext = equipeRepository.findById(equipeExtId)
-                .orElseThrow(() -> new EntityNotFoundException("Équipe extérieur introuvable"));
+    @Transactional
+    public MatchResponse createMatch(MatchRequest req) {
+        Competition competition = competitionRepository.findById(req.getCompetitionId())
+                .orElseThrow(() -> new RuntimeException("Compétition non trouvée"));
+        Equipe equipeDomicile = equipeRepository.findById(req.getEquipeDomicileId())
+                .orElseThrow(() -> new RuntimeException("Équipe domicile non trouvée"));
+        Equipe equipeExterieur = equipeRepository.findById(req.getEquipeExterieurId())
+                .orElseThrow(() -> new RuntimeException("Équipe extérieure non trouvée"));
+        Arbitre arbitre = req.getArbitreId() != null ? arbitreRepository.findById(req.getArbitreId())
+                .orElseThrow(() -> new RuntimeException("Arbitre non trouvé")) : null;
 
-        if (equipeDomId.equals(equipeExtId))
-            throw new IllegalArgumentException("Les deux équipes doivent être différentes");
+        Match match = Match.builder()
+                .competition(competition)
+                .equipeDomicile(equipeDomicile)
+                .equipeExterieur(equipeExterieur)
+                .dateMatch(req.getDateMatch())
+                .lieu(req.getLieu())
+                .statut(req.getStatut() != null ? req.getStatut() : MatchStatus.PROGRAMME)
+                .arbitre(arbitre)
+                .build();
 
-        match.setCompetition(competition);
-        match.setEquipeDomicile(dom);
-        match.setEquipeExterieur(ext);
-        // ✅ PLANIFIE par défaut à la création
-        match.setStatut(MatchStatus.PLANIFIE);
-        return matchRepository.save(match);
+        return toMatchResponse(matchRepository.save(match));
     }
 
-    public Match update(UUID id, Match updated) {
-        Match existing = getById(id);
-        existing.setDateMatch(updated.getDateMatch());
-        existing.setLieu(updated.getLieu());
-        return matchRepository.save(existing);
+    @Transactional
+    public MatchResponse updateMatch(String id, MatchRequest req) {
+        Match match = matchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Match non trouvé"));
+
+        // Update fields
+        match.setDateMatch(req.getDateMatch());
+        match.setLieu(req.getLieu());
+        match.setScoreDomicile(req.getScoreDomicile());
+        match.setScoreExterieur(req.getScoreExterieur());
+        match.setStatut(req.getStatut());
+
+        if (req.getArbitreId() != null) {
+            Arbitre arbitre = arbitreRepository.findById(req.getArbitreId())
+                    .orElseThrow(() -> new RuntimeException("Arbitre non trouvé"));
+            match.setArbitre(arbitre);
+        }
+
+        return toMatchResponse(matchRepository.save(match));
     }
 
-    public void delete(UUID id) {
-        matchRepository.delete(getById(id));
+    @Transactional
+    public void deleteMatch(String id) {
+        matchRepository.deleteById(id);
     }
 
-    // ── Statut ────────────────────────────────────────────
-
-    public Match updateStatut(UUID id, MatchStatus statut) {
-        Match match = getById(id);
-        match.setStatut(statut);
-        return matchRepository.save(match);
-    }
-
-    public Match commencer(UUID id) {
-        return updateStatut(id, MatchStatus.EN_COURS);
-    }
-
-    public Match reporter(UUID id) {
-        return updateStatut(id, MatchStatus.REPORTE);
-    }
-
-    public Match annuler(UUID id) {
-        return updateStatut(id, MatchStatus.ANNULE);
-    }
-
-    // ── Résultat ──────────────────────────────────────────
-
-    public Match enregistrerResultat(UUID id, Integer scoreDom, Integer scoreExt) {
-        Match match = getById(id);
-
-        if (match.getStatut() == MatchStatus.ANNULE)
-            throw new IllegalStateException("Impossible d'enregistrer un résultat pour un match annulé");
-        if (match.getStatut() == MatchStatus.REPORTE)
-            throw new IllegalStateException("Impossible d'enregistrer un résultat pour un match reporté");
-
-        match.setScoreDomicile(scoreDom);
-        match.setScoreExterieur(scoreExt);
-        // ✅ TERMINE après enregistrement du résultat
-        match.setStatut(MatchStatus.TERMINE);
-        return matchRepository.save(match);
-    }
-
-    // ── Filtres ───────────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public List<Match> getByEquipe(UUID equipeId) {
-        return matchRepository.findByEquipeDomicileIdOrEquipeExterieurId(equipeId, equipeId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Match> getByCompetition(UUID competitionId) {
-        return matchRepository.findByCompetitionId(competitionId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Match> getByStatut(MatchStatus statut) {
-        return matchRepository.findByStatut(statut);
-    }
-
-    // ── Stats ─────────────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public Map<String, Long> getStats(UUID equipeId) {
-        List<Match> matchs = getByEquipe(equipeId);
-
-        long wins = matchs.stream()
-                .filter(m -> m.getStatut() == MatchStatus.TERMINE && (
-                        (m.getEquipeDomicile().getId().equals(equipeId) && m.getScoreDomicile() > m.getScoreExterieur()) ||
-                                (m.getEquipeExterieur().getId().equals(equipeId) && m.getScoreExterieur() > m.getScoreDomicile())
-                )).count();
-
-        long losses = matchs.stream()
-                .filter(m -> m.getStatut() == MatchStatus.TERMINE && (
-                        (m.getEquipeDomicile().getId().equals(equipeId) && m.getScoreDomicile() < m.getScoreExterieur()) ||
-                                (m.getEquipeExterieur().getId().equals(equipeId) && m.getScoreExterieur() < m.getScoreDomicile())
-                )).count();
-
-        long termines = matchs.stream()
-                .filter(m -> m.getStatut() == MatchStatus.TERMINE).count();
-
-        return Map.of(
-                "total",     (long) matchs.size(),
-                "termines",  termines,
-                "wins",      wins,
-                "losses",    losses,
-                "draws",     termines - wins - losses,
-                "planifies", matchs.stream().filter(m -> m.getStatut() == MatchStatus.PLANIFIE).count(),
-                "enCours",   matchs.stream().filter(m -> m.getStatut() == MatchStatus.EN_COURS).count(),
-                "reportes",  matchs.stream().filter(m -> m.getStatut() == MatchStatus.REPORTE).count()
-        );
+    private MatchResponse toMatchResponse(Match m) {
+        return MatchResponse.builder()
+                .id(m.getId())
+                .competitionNom(m.getCompetition() != null ? m.getCompetition().getNom() : "Amical")
+                .equipeDomicile(m.getEquipeDomicile() != null ? m.getEquipeDomicile().getNom() : "?")
+                .equipeExterieur(m.getEquipeExterieur() != null ? m.getEquipeExterieur().getNom() : "?")
+                .dateMatch(m.getDateMatch())
+                .lieu(m.getLieu())
+                .score(m.getStatut() == MatchStatus.TERMINE
+                        ? (m.getScoreDomicile() != null ? m.getScoreDomicile() : 0) + " - " + (m.getScoreExterieur() != null ? m.getScoreExterieur() : 0)
+                        : "N/A")
+                .statut(m.getStatut().name())
+                .build();
     }
 }

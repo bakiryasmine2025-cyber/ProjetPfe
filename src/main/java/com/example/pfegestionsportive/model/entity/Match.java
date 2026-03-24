@@ -1,13 +1,16 @@
 package com.example.pfegestionsportive.model.entity;
+
 import com.example.pfegestionsportive.model.enums.MatchStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
-@Table(name = "matchs")
+@Table(name = "matches")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,54 +19,31 @@ public class Match {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
-    @Column(nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
+
+    @ManyToOne
+    @JoinColumn(name = "equipe_domicile_id")
+    private Equipe equipeDomicile;
+
+    @ManyToOne
+    @JoinColumn(name = "equipe_exterieur_id")
+    private Equipe equipeExterieur;
+
     private LocalDateTime dateMatch;
 
-    @Column(nullable = false)
-    private String lieu;
+    private String lieu; // Stadium, City
 
     private Integer scoreDomicile;
-
     private Integer scoreExterieur;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private MatchStatus statut;
 
-    private LocalDateTime dateCreation;
-
-    private LocalDateTime dateMiseAJour;
-
-    // ✅ Relation avec Competition
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "competition_id", nullable = false)
-    private Competition competition;
-
-    // ✅ Equipe Domicile
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipe_domicile_id", nullable = false)
-    private Equipe equipeDomicile;
-
-    // ✅ Equipe Exterieur
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipe_exterieur_id", nullable = false)
-    private Equipe equipeExterieur;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "arbitre_id")
-    private ProfilArbitre arbitre;
-
-    @PrePersist
-    public void prePersist() {
-        this.dateCreation = LocalDateTime.now();
-        this.dateMiseAJour = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.dateMiseAJour = LocalDateTime.now();
-    }
-
+    private Arbitre arbitre;
 }
