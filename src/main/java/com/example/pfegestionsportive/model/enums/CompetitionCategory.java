@@ -1,4 +1,9 @@
 package com.example.pfegestionsportive.model.enums;
 
-public class CompetitionCategory {
+public enum CompetitionCategory {
+
+    CHAMPIONNAT,
+    COUPE,
+    TOURNOI,
+    AMICAL
 }

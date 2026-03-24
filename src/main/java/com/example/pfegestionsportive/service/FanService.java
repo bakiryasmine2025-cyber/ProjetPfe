@@ -119,4 +119,10 @@ public class FanService {
                 .statut(m.getStatut().name())
                 .build();
     }
+    public List<String> getClubsSuivisIds() {
+        User user = getCurrentUser();
+        return user.getClubsSuivis().stream()
+                .map(Club::getId)
+                .collect(Collectors.toList());
+    }
 }

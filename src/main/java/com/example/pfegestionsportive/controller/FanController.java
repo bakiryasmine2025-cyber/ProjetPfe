@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/fan")
@@ -25,6 +26,11 @@ public class FanController {
     public ResponseEntity<Void> unfollowClub(@PathVariable String clubId) {
         fanService.unfollowClub(clubId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/clubs-suivis")
+    public ResponseEntity<List<String>> getClubsSuivis() {
+        return ResponseEntity.ok(fanService.getClubsSuivisIds());
     }
 
     @GetMapping("/feed")

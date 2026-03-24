@@ -17,8 +17,8 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class StaffTechnique extends Personne {
 
-    private String typeStaff; // e.g., Entraîneur, Préparateur physique, Kiné
+    private String typeStaff; // Ex: Coach, Physio
     private String qualification;
     private Integer anneeExperience;
-    private String statut; // e.g., Actif, Inactif
+    private String statut;
 }

@@ -6,5 +6,6 @@ import lombok.Data;
 @Data
 public class CreateEquipeRequest {
     private String nom;
-    private Gender categorie;
+    private String categorie;
+    private Gender genre;
 }

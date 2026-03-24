@@ -1,4 +1,9 @@
 package com.example.pfegestionsportive.model.enums;
 
-public class PartenaireType {
+public enum PartenaireType {
+
+    SPONSOR,
+    MEDIA,
+    INSTITUTIONNEL,
+    TECHNIQUE
 }

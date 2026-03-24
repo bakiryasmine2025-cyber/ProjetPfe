@@ -1,5 +1,6 @@
 package com.example.pfegestionsportive.model.enums;
 
-public enum Grender {
-    
+public enum Gender {
+    MASCULIN,
+    FEMININ
 }

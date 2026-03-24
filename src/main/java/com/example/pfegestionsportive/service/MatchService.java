@@ -45,8 +45,12 @@ public class MatchService {
                 .orElseThrow(() -> new RuntimeException("Équipe domicile non trouvée"));
         Equipe equipeExterieur = equipeRepository.findById(req.getEquipeExterieurId())
                 .orElseThrow(() -> new RuntimeException("Équipe extérieure non trouvée"));
-        Arbitre arbitre = req.getArbitreId() != null ? arbitreRepository.findById(req.getArbitreId())
-                .orElseThrow(() -> new RuntimeException("Arbitre non trouvé")) : null;
+        
+        Arbitre arbitre = null;
+        if (req.getArbitreId() != null) {
+            arbitre = arbitreRepository.findById(req.getArbitreId())
+                    .orElseThrow(() -> new RuntimeException("Arbitre non trouvé"));
+        }
 
         Match match = Match.builder()
                 .competition(competition)
@@ -54,6 +58,8 @@ public class MatchService {
                 .equipeExterieur(equipeExterieur)
                 .dateMatch(req.getDateMatch())
                 .lieu(req.getLieu())
+                .scoreDomicile(req.getScoreDomicile())
+                .scoreExterieur(req.getScoreExterieur())
                 .statut(req.getStatut() != null ? req.getStatut() : MatchStatus.PROGRAMME)
                 .arbitre(arbitre)
                 .build();
@@ -66,12 +72,12 @@ public class MatchService {
         Match match = matchRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Match non trouvé"));
 
-        // Update fields
-        match.setDateMatch(req.getDateMatch());
-        match.setLieu(req.getLieu());
-        match.setScoreDomicile(req.getScoreDomicile());
-        match.setScoreExterieur(req.getScoreExterieur());
-        match.setStatut(req.getStatut());
+        // Mise à jour des champs modifiables
+        if (req.getDateMatch() != null) match.setDateMatch(req.getDateMatch());
+        if (req.getLieu() != null) match.setLieu(req.getLieu());
+        if (req.getScoreDomicile() != null) match.setScoreDomicile(req.getScoreDomicile());
+        if (req.getScoreExterieur() != null) match.setScoreExterieur(req.getScoreExterieur());
+        if (req.getStatut() != null) match.setStatut(req.getStatut());
 
         if (req.getArbitreId() != null) {
             Arbitre arbitre = arbitreRepository.findById(req.getArbitreId())
@@ -98,7 +104,7 @@ public class MatchService {
                 .score(m.getStatut() == MatchStatus.TERMINE
                         ? (m.getScoreDomicile() != null ? m.getScoreDomicile() : 0) + " - " + (m.getScoreExterieur() != null ? m.getScoreExterieur() : 0)
                         : "N/A")
-                .statut(m.getStatut().name())
+                .statut(m.getStatut() != null ? m.getStatut().name() : "PROGRAMME")
                 .build();
     }
 }

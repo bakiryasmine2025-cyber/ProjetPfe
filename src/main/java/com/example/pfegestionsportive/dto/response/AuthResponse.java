@@ -1,4 +1,16 @@
 package com.example.pfegestionsportive.dto.response;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+@Builder
 public class AuthResponse {
+    private String token;
+    private String nom;
+    private String email;
+    private String role;
+    private String statut;
 }

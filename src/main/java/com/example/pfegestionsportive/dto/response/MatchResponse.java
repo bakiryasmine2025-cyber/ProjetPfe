@@ -13,6 +13,7 @@ public class MatchResponse {
     private String equipeExterieur;
     private LocalDateTime dateMatch;
     private String lieu;
+
     private String score;
     private String statut;
 }

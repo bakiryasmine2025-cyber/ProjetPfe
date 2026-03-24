@@ -1,4 +1,9 @@
 package com.example.pfegestionsportive.model.enums;
 
-public class ClubStatus {
+public enum ClubStatus {
+
+    ACTIF,
+    INACTIF,
+    SUSPENDU
+
 }

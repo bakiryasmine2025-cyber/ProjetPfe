@@ -1,4 +1,10 @@
 package com.example.pfegestionsportive.model.enums;
 
-public class LicenceStatus {
+public enum LicenceStatus {
+
+    PENDING,
+    ACTIVE,
+    EXPIRED,
+    SUSPENDED
+
 }

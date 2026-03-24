@@ -1,4 +1,9 @@
 package com.example.pfegestionsportive.model.enums;
 
-public class LicenceType {
+public enum LicenceType {
+
+    JOUEUR,
+    ENTRAINEUR,
+    ARBITRE,
+    STAFF_TECHNIQUE
 }

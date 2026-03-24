@@ -22,8 +22,10 @@ public class Equipe {
 
     private String nom;
 
+    private String categorie; // SENIOR, JUNIOR, CADET, MINIME, ECOLE
+
     @Enumerated(EnumType.STRING)
-    private Gender categorie; // MASCULINE, FEMININE
+    private Gender genre; // MASCULIN, FEMININ, MIXTE
 
     @ManyToOne
     @JoinColumn(name = "club_id")
