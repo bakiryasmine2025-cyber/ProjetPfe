@@ -2,8 +2,11 @@ package com.example.pfegestionsportive.model.entity;
 
 import com.example.pfegestionsportive.model.enums.AccountStatus;
 import com.example.pfegestionsportive.model.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -41,9 +44,15 @@ public class User {
     @Builder.Default
     private LocalDateTime dateCreation = LocalDateTime.now();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "club_id")
-    private Club club; // For CLUB_ADMIN
+    @JsonIgnoreProperties({"adminUser", "clubsSuivis", "hibernateLazyInitializer"})
+
+    private Club club;
+
+    @Column(name = "date_inscription", updatable = false)
+    @CreationTimestamp
+    private LocalDateTime dateInscription;
 
     @ManyToMany
     @JoinTable(
@@ -51,6 +60,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "club_id")
     )
+    @JsonIgnoreProperties({"adminUser", "clubsSuivis", "hibernateLazyInitializer"})
     @Builder.Default
     private List<Club> clubsSuivis = new ArrayList<>(); // For FAN
 }

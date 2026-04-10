@@ -1,5 +1,6 @@
 package com.example.pfegestionsportive.dto.request;
 
+import com.example.pfegestionsportive.model.enums.Gender;
 import com.example.pfegestionsportive.model.enums.Role;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -9,6 +10,9 @@ public class RegisterRequest {
 
     @NotBlank
     private String nom;
+
+    @NotBlank
+    private String prenom;
 
     @NotBlank
     @Email
@@ -22,4 +26,10 @@ public class RegisterRequest {
 
     @NotNull
     private Role role;
+
+    // Champs joueur — optionnels pour les autres rôles
+    private Gender genre;
+    private String poste;
+    private String categorie;
+    private String nomClub;
 }

@@ -1,5 +1,6 @@
 package com.example.pfegestionsportive.model.entity;
 
+import com.example.pfegestionsportive.model.enums.SaisonStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -19,6 +20,10 @@ public class Saison {
 
     @Column(nullable = false, unique = true)
     private String nom;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private SaisonStatus statut = SaisonStatus.OUVERTE;
 
     private LocalDate dateDebut;
     private LocalDate dateFin;

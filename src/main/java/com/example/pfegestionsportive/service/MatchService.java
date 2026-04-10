@@ -1,15 +1,14 @@
 package com.example.pfegestionsportive.service;
 
 import com.example.pfegestionsportive.dto.request.MatchRequest;
+import com.example.pfegestionsportive.dto.request.MatchResultRequest;
 import com.example.pfegestionsportive.dto.response.MatchResponse;
 import com.example.pfegestionsportive.model.entity.*;
 import com.example.pfegestionsportive.model.enums.MatchStatus;
 import com.example.pfegestionsportive.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Comparator;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,94 +16,110 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MatchService {
 
-    private final MatchRepository matchRepository;
+    private final MatchRepository     matchRepository;
     private final CompetitionRepository competitionRepository;
-    private final EquipeRepository equipeRepository;
-    private final ArbitreRepository arbitreRepository;
+    private final EquipeRepository    equipeRepository;
+    private final ArbitreRepository   arbitreRepository; // ← badel UserRepository
 
-    @Transactional(readOnly = true)
-    public List<MatchResponse> getAllMatches() {
-        return matchRepository.findAll().stream()
-                .sorted(Comparator.comparing(Match::getDateMatch).reversed())
-                .map(this::toMatchResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public MatchResponse getMatchById(String id) {
-        return matchRepository.findById(id)
-                .map(this::toMatchResponse)
-                .orElseThrow(() -> new RuntimeException("Match non trouvé"));
-    }
-
-    @Transactional
-    public MatchResponse createMatch(MatchRequest req) {
+    public MatchResponse planifier(MatchRequest req) {
         Competition competition = competitionRepository.findById(req.getCompetitionId())
-                .orElseThrow(() -> new RuntimeException("Compétition non trouvée"));
-        Equipe equipeDomicile = equipeRepository.findById(req.getEquipeDomicileId())
-                .orElseThrow(() -> new RuntimeException("Équipe domicile non trouvée"));
-        Equipe equipeExterieur = equipeRepository.findById(req.getEquipeExterieurId())
-                .orElseThrow(() -> new RuntimeException("Équipe extérieure non trouvée"));
-        
+                .orElseThrow(() -> new RuntimeException("Compétition introuvable"));
+
+        Equipe domicile = equipeRepository.findById(req.getEquipeDomicileId())
+                .orElseThrow(() -> new RuntimeException("Équipe domicile introuvable"));
+
+        Equipe exterieur = equipeRepository.findById(req.getEquipeExterieurId())
+                .orElseThrow(() -> new RuntimeException("Équipe extérieure introuvable"));
+
+        if (domicile.getId().equals(exterieur.getId()))
+            throw new RuntimeException("Les deux équipes doivent être différentes");
+
+        LocalDateTime debut = req.getDateMatch().minusHours(2);
+        LocalDateTime fin   = req.getDateMatch().plusHours(2);
+
+        List<Match> conflitsDomicile = matchRepository.findConflits(domicile.getId(), debut, fin);
+        if (!conflitsDomicile.isEmpty())
+            throw new RuntimeException("Conflit calendrier pour l'équipe domicile : " +
+                    conflitsDomicile.get(0).getDateMatch());
+
+        List<Match> conflitsExterieur = matchRepository.findConflits(exterieur.getId(), debut, fin);
+        if (!conflitsExterieur.isEmpty())
+            throw new RuntimeException("Conflit calendrier pour l'équipe extérieure : " +
+                    conflitsExterieur.get(0).getDateMatch());
+
+        // ← Arbitre optionnel — cherche dans ArbitreRepository
         Arbitre arbitre = null;
-        if (req.getArbitreId() != null) {
-            arbitre = arbitreRepository.findById(req.getArbitreId())
-                    .orElseThrow(() -> new RuntimeException("Arbitre non trouvé"));
-        }
+        if (req.getArbitreId() != null && !req.getArbitreId().isBlank())
+            arbitre = arbitreRepository.findById(req.getArbitreId()).orElse(null);
 
         Match match = Match.builder()
                 .competition(competition)
-                .equipeDomicile(equipeDomicile)
-                .equipeExterieur(equipeExterieur)
+                .equipeDomicile(domicile)
+                .equipeExterieur(exterieur)
+                .arbitre(arbitre)
                 .dateMatch(req.getDateMatch())
                 .lieu(req.getLieu())
-                .scoreDomicile(req.getScoreDomicile())
-                .scoreExterieur(req.getScoreExterieur())
-                .statut(req.getStatut() != null ? req.getStatut() : MatchStatus.PROGRAMME)
-                .arbitre(arbitre)
+                .statut(MatchStatus.PROGRAMME)
                 .build();
 
-        return toMatchResponse(matchRepository.save(match));
+        return toResponse(matchRepository.save(match));
     }
 
-    @Transactional
-    public MatchResponse updateMatch(String id, MatchRequest req) {
-        Match match = matchRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Match non trouvé"));
-
-        // Mise à jour des champs modifiables
-        if (req.getDateMatch() != null) match.setDateMatch(req.getDateMatch());
-        if (req.getLieu() != null) match.setLieu(req.getLieu());
-        if (req.getScoreDomicile() != null) match.setScoreDomicile(req.getScoreDomicile());
-        if (req.getScoreExterieur() != null) match.setScoreExterieur(req.getScoreExterieur());
-        if (req.getStatut() != null) match.setStatut(req.getStatut());
-
-        if (req.getArbitreId() != null) {
-            Arbitre arbitre = arbitreRepository.findById(req.getArbitreId())
-                    .orElseThrow(() -> new RuntimeException("Arbitre non trouvé"));
-            match.setArbitre(arbitre);
-        }
-
-        return toMatchResponse(matchRepository.save(match));
+    public List<MatchResponse> getAll() {
+        return matchRepository.findAllByOrderByDateMatchAsc()
+                .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    @Transactional
-    public void deleteMatch(String id) {
-        matchRepository.deleteById(id);
+    public List<MatchResponse> getByCompetition(String competitionId) {
+        return matchRepository.findByCompetitionIdOrderByDateMatchAsc(competitionId)
+                .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    private MatchResponse toMatchResponse(Match m) {
+    public MatchResponse getById(String id) {
+        return toResponse(findById(id));
+    }
+
+    public MatchResponse enregistrerResultat(String id, MatchResultRequest req) {
+        Match match = findById(id);
+        if (match.getStatut() == MatchStatus.REPORTE)
+            throw new RuntimeException("Impossible de modifier un match reporté");
+        match.setScoreDomicile(req.getScoreDomicile());
+        match.setScoreExterieur(req.getScoreExterieur());
+        match.setStatut(MatchStatus.TERMINE);
+        return toResponse(matchRepository.save(match));
+    }
+
+    public MatchResponse changerStatut(String id, MatchStatus statut) {
+        Match match = findById(id);
+        match.setStatut(statut);
+        return toResponse(matchRepository.save(match));
+    }
+
+    public void delete(String id) {
+        matchRepository.delete(findById(id));
+    }
+
+    private Match findById(String id) {
+        return matchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Match introuvable"));
+    }
+
+    private MatchResponse toResponse(Match m) {
         return MatchResponse.builder()
                 .id(m.getId())
-                .competitionNom(m.getCompetition() != null ? m.getCompetition().getNom() : "Amical")
-                .equipeDomicile(m.getEquipeDomicile() != null ? m.getEquipeDomicile().getNom() : "?")
-                .equipeExterieur(m.getEquipeExterieur() != null ? m.getEquipeExterieur().getNom() : "?")
+                .competitionId(m.getCompetition().getId())
+                .competitionNom(m.getCompetition().getNom())
+                .equipeDomicileId(m.getEquipeDomicile().getId())
+                .equipeDomicileNom(m.getEquipeDomicile().getNom())
+                .equipeExterieureId(m.getEquipeExterieur().getId())
+                .equipeExterieureNom(m.getEquipeExterieur().getNom())
+                .arbitreId(m.getArbitre() != null ? m.getArbitre().getId() : null)
+                .arbitreNom(m.getArbitre() != null ? m.getArbitre().getNom() + " " + m.getArbitre().getPrenom() : null)
                 .dateMatch(m.getDateMatch())
                 .lieu(m.getLieu())
-                .score(m.getStatut() == MatchStatus.TERMINE
-                        ? (m.getScoreDomicile() != null ? m.getScoreDomicile() : 0) + " - " + (m.getScoreExterieur() != null ? m.getScoreExterieur() : 0)
-                        : "N/A")
-                .statut(m.getStatut() != null ? m.getStatut().name() : "PROGRAMME")
+                .scoreDomicile(m.getScoreDomicile())
+                .scoreExterieur(m.getScoreExterieur())
+                .statut(m.getStatut().name())
                 .build();
     }
 }

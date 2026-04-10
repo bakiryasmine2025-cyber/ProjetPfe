@@ -2,8 +2,8 @@ package com.example.pfegestionsportive.controller;
 
 import com.example.pfegestionsportive.dto.request.LicenceRequest;
 import com.example.pfegestionsportive.dto.response.LicenceResponse;
+import com.example.pfegestionsportive.model.enums.LicenceStatus;
 import com.example.pfegestionsportive.service.LicenceService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,55 +12,84 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/licences")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"},
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
+                RequestMethod.DELETE, RequestMethod.PATCH, RequestMethod.OPTIONS},
+        allowedHeaders = "*",
+        allowCredentials = "true")
 public class LicenceController {
 
     private final LicenceService licenceService;
 
-    @PostMapping("/federation/licences")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'FEDERATION_ADMIN' )")
-    public ResponseEntity<LicenceResponse> createLicence(@RequestBody @Valid LicenceRequest req) {
-        return ResponseEntity.ok(licenceService.createLicence(req));
+    @PostMapping
+    @PreAuthorize("hasRole('CLUB_ADMIN')")
+    public ResponseEntity<LicenceResponse> soumettreDemandeClub(@RequestBody LicenceRequest req) {
+        return ResponseEntity.ok(licenceService.soumettreDemandeClub(req));
     }
 
-    @GetMapping("/federation/licences")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'FEDERATION_ADMIN')")
+    @GetMapping("/mon-club")
+    @PreAuthorize("hasAnyRole('CLUB_ADMIN', 'FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<LicenceResponse>> getLicencesMonClub() {
+        return ResponseEntity.ok(licenceService.getLicencesByClubAdmin());
+    }
+
+    @PostMapping("/admin")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> creerDirecte(@RequestBody LicenceRequest req) {
+        return ResponseEntity.ok(licenceService.creerDirecte(req));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<LicenceResponse>> getAllLicences() {
         return ResponseEntity.ok(licenceService.getAllLicences());
     }
 
-    @GetMapping("/federation/licences/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'FEDERATION_ADMIN')")
-    public ResponseEntity<LicenceResponse> getLicenceById(@PathVariable String id) {
+    @GetMapping("/statut/{statut}")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<LicenceResponse>> getByStatut(@PathVariable LicenceStatus statut) {
+        return ResponseEntity.ok(licenceService.getLicencesByStatut(statut));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'CLUB_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> getById(@PathVariable String id) {
         return ResponseEntity.ok(licenceService.getLicenceById(id));
     }
 
-    @PutMapping("/federation/licences/{id}/verify")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'FEDERATION_ADMIN')")
-    public ResponseEntity<LicenceResponse> verifyLicence(@PathVariable String id) {
-        return ResponseEntity.ok(licenceService.verifyLicence(id));
+    @PatchMapping("/{id}/approuver")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> approuver(@PathVariable String id) {
+        return ResponseEntity.ok(licenceService.approuverLicence(id));
     }
 
-    @PutMapping("/federation/licences/{id}/suspendre")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'FEDERATION_ADMIN')")
-    public ResponseEntity<LicenceResponse> suspendreLicence(
+    @PatchMapping("/{id}/activer")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> activer(@PathVariable String id) {
+        return ResponseEntity.ok(licenceService.activerLicence(id));
+    }
+
+    @PatchMapping("/{id}/refuser")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> refuser(
             @PathVariable String id,
-            @RequestParam String raison) {
+            @RequestParam(required = false) String motif) {
+        return ResponseEntity.ok(licenceService.refuserLicence(id, motif));
+    }
+
+    @PatchMapping("/{id}/suspendre")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> suspendre(
+            @PathVariable String id,
+            @RequestParam(required = false) String raison) {
         return ResponseEntity.ok(licenceService.suspendreLicence(id, raison));
     }
 
-    @GetMapping("/club-admin/licences")
-    @PreAuthorize("hasRole('CLUB_ADMIN')")
-    public ResponseEntity<List<LicenceResponse>> getMesLicences() {
-        return ResponseEntity.ok(licenceService.getLicencesByClubAdmin());
-    }
-
-    @PostMapping("/club-admin/licences")
-    @PreAuthorize("hasRole('CLUB_ADMIN')")
-    public ResponseEntity<LicenceResponse> soumettredemande(
-            @RequestBody @Valid LicenceRequest req) {
-        return ResponseEntity.ok(licenceService.createLicence(req));
-
+    @PatchMapping("/{id}/renouveler")
+    @PreAuthorize("hasAnyRole('FEDERATION_ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LicenceResponse> renouveler(@PathVariable String id) {
+        return ResponseEntity.ok(licenceService.renouvelerLicence(id));
     }
 }

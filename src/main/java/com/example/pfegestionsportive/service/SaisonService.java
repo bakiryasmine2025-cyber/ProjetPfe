@@ -3,6 +3,7 @@ package com.example.pfegestionsportive.service;
 import com.example.pfegestionsportive.dto.request.SaisonRequest;
 import com.example.pfegestionsportive.dto.response.SaisonResponse;
 import com.example.pfegestionsportive.model.entity.Saison;
+import com.example.pfegestionsportive.model.enums.SaisonStatus;
 import com.example.pfegestionsportive.repository.SaisonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,13 +17,13 @@ public class SaisonService {
     private final SaisonRepository saisonRepository;
 
     public SaisonResponse create(SaisonRequest req) {
-        Saison saison = Saison.builder()
-                .nom(req.getNom())
-                .dateDebut(req.getDateDebut())
+        Saison s = Saison.builder()
+                .nom(req.getNom()).dateDebut(req.getDateDebut())
                 .dateFin(req.getDateFin())
-                .active(req.isActive())
+                .statut(SaisonStatus.OUVERTE)
+                .active(false)
                 .build();
-        return toResponse(saisonRepository.save(saison));
+        return toResponse(saisonRepository.save(s));
     }
 
     public List<SaisonResponse> getAll() {
@@ -30,30 +31,42 @@ public class SaisonService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    public SaisonResponse getById(String id) {
-        return toResponse(findById(id));
-    }
-
     public SaisonResponse update(String id, SaisonRequest req) {
         Saison s = findById(id);
-        if (req.getNom() != null) s.setNom(req.getNom());
+        if (req.getNom() != null)      s.setNom(req.getNom());
         if (req.getDateDebut() != null) s.setDateDebut(req.getDateDebut());
-        if (req.getDateFin() != null) s.setDateFin(req.getDateFin());
-        s.setActive(req.isActive());
+        if (req.getDateFin() != null)   s.setDateFin(req.getDateFin());
         return toResponse(saisonRepository.save(s));
     }
 
-    // ✅ 3.3 - Activer une saison (désactive les autres)
+    // ✅ 3.5 - Activer saison
     public SaisonResponse activate(String id) {
-        // Désactiver toutes
         saisonRepository.findAll().forEach(s -> {
             s.setActive(false);
             saisonRepository.save(s);
         });
-        // Activer celle-ci
-        Saison saison = findById(id);
-        saison.setActive(true);
-        return toResponse(saisonRepository.save(saison));
+        Saison s = findById(id);
+        s.setActive(true);
+        s.setStatut(SaisonStatus.OUVERTE);
+        return toResponse(saisonRepository.save(s));
+    }
+
+    // ✅ 3.5 - Clôturer saison
+    public SaisonResponse cloturer(String id) {
+        Saison s = findById(id);
+        if (s.getStatut() == SaisonStatus.CLOTUREE)
+            throw new RuntimeException("Saison déjà clôturée");
+        s.setStatut(SaisonStatus.CLOTUREE);
+        s.setActive(false);
+        return toResponse(saisonRepository.save(s));
+    }
+
+    // ✅ 3.5 - Archiver saison
+    public SaisonResponse archiver(String id) {
+        Saison s = findById(id);
+        s.setStatut(SaisonStatus.ARCHIVEE);
+        s.setActive(false);
+        return toResponse(saisonRepository.save(s));
     }
 
     public void delete(String id) {
@@ -69,7 +82,9 @@ public class SaisonService {
         return SaisonResponse.builder()
                 .id(s.getId()).nom(s.getNom())
                 .dateDebut(s.getDateDebut()).dateFin(s.getDateFin())
-                .active(s.isActive()).dateCreation(s.getDateCreation())
+                .statut(s.getStatut().name())
+                .active(s.isActive())
+                .dateCreation(s.getDateCreation())
                 .build();
     }
 }

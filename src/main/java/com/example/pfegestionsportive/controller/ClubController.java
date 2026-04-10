@@ -1,8 +1,8 @@
 package com.example.pfegestionsportive.controller;
 
 import com.example.pfegestionsportive.dto.request.ClubRequest;
+import com.example.pfegestionsportive.dto.request.ClubSuspensionRequest;
 import com.example.pfegestionsportive.dto.response.ClubResponse;
-import com.example.pfegestionsportive.model.enums.ClubStatus;
 import com.example.pfegestionsportive.service.ClubService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,17 +29,24 @@ public class ClubController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN' , 'FAN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
     public ResponseEntity<ClubResponse> create(@RequestBody @Valid ClubRequest req) {
         return ResponseEntity.ok(clubService.create(req));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN' , 'FAN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
     public ResponseEntity<ClubResponse> update(
-            @PathVariable String id,
-            @RequestBody ClubRequest req) {
+            @PathVariable String id, @RequestBody ClubRequest req) {
         return ResponseEntity.ok(clubService.update(id, req));
+    }
+
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
+    public ResponseEntity<ClubResponse> changerStatut(
+            @PathVariable String id,
+            @RequestBody @Valid ClubSuspensionRequest req) {
+        return ResponseEntity.ok(clubService.changerStatut(id, req));
     }
 
     @DeleteMapping("/{id}")
@@ -47,13 +54,5 @@ public class ClubController {
     public ResponseEntity<Void> delete(@PathVariable String id) {
         clubService.delete(id);
         return ResponseEntity.ok().build();
-    }
-
-    @PatchMapping("/{id}/statut")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
-    public ResponseEntity<ClubResponse> changeStatut(
-            @PathVariable String id,
-            @RequestParam ClubStatus statut) {
-        return ResponseEntity.ok(clubService.changeStatut(id, statut));
     }
 }

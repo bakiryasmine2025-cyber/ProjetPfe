@@ -38,4 +38,6 @@ public class Licence {
     @ManyToOne
     @JoinColumn(name = "club_id")
     private Club club;
+
+    private String motifRefus;
 }

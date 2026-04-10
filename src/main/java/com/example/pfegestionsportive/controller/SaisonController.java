@@ -22,11 +22,6 @@ public class SaisonController {
         return ResponseEntity.ok(saisonService.getAll());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<SaisonResponse> getById(@PathVariable String id) {
-        return ResponseEntity.ok(saisonService.getById(id));
-    }
-
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
     public ResponseEntity<SaisonResponse> create(@RequestBody @Valid SaisonRequest req) {
@@ -36,15 +31,29 @@ public class SaisonController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
     public ResponseEntity<SaisonResponse> update(
-            @PathVariable String id,
-            @RequestBody SaisonRequest req) {
+            @PathVariable String id, @RequestBody SaisonRequest req) {
         return ResponseEntity.ok(saisonService.update(id, req));
     }
 
+    // ✅ 3.5 - Ouvrir (activer)
     @PatchMapping("/{id}/activer")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
-    public ResponseEntity<SaisonResponse> activate(@PathVariable String id) {
+    public ResponseEntity<SaisonResponse> activer(@PathVariable String id) {
         return ResponseEntity.ok(saisonService.activate(id));
+    }
+
+    // ✅ 3.5 - Clôturer
+    @PatchMapping("/{id}/cloturer")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
+    public ResponseEntity<SaisonResponse> cloturer(@PathVariable String id) {
+        return ResponseEntity.ok(saisonService.cloturer(id));
+    }
+
+    // ✅ 3.5 - Archiver
+    @PatchMapping("/{id}/archiver")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
+    public ResponseEntity<SaisonResponse> archiver(@PathVariable String id) {
+        return ResponseEntity.ok(saisonService.archiver(id));
     }
 
     @DeleteMapping("/{id}")

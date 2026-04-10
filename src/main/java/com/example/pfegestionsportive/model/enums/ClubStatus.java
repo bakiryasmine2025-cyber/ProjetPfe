@@ -4,6 +4,7 @@ public enum ClubStatus {
 
     ACTIF,
     INACTIF,
-    SUSPENDU
+    SUSPENDU,
+    ARCHIVE
 
 }

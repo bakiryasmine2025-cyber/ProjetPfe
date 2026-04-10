@@ -3,6 +3,7 @@ package com.example.pfegestionsportive.model.entity;
 
 import com.example.pfegestionsportive.model.enums.CompetitionCategory;
 import com.example.pfegestionsportive.model.enums.CompetitionLevel;
+import com.example.pfegestionsportive.model.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -27,6 +28,9 @@ public class Competition {
 
     @Enumerated(EnumType.STRING)
     private CompetitionLevel niveau;
+
+    @Enumerated(EnumType.STRING)
+    private Gender genre;
 
     @ManyToOne
     @JoinColumn(name = "saison_id")

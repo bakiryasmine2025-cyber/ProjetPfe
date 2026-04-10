@@ -18,4 +18,6 @@ public class ClubResponse {
     private String statut;
     private LocalDateTime dateCreation;
     private LocalDateTime dateMiseAJour;
+    private String motifSuspension;
+    private Long nombreJoueurs;
 }

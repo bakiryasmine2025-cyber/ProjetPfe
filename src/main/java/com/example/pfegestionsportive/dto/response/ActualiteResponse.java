@@ -13,4 +13,6 @@ public class ActualiteResponse {
     private String urlImage;
     private LocalDateTime datePublication;
     private String clubNom;
+    private String categorie;
+
 }

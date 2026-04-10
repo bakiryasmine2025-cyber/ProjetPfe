@@ -7,12 +7,23 @@ import lombok.Data;
 
 @Data
 public class CompetitionRequest {
-    @NotBlank
+
+    @NotBlank(message = "Le nom est obligatoire")
     private String nom;
-    private CompetitionCategory categorie;
-    private CompetitionLevel niveau;
-    private String saisonId;
+
+    private String saison;           // ex: "2024-2025"
+
+    private String saisonId;         // ID de la saison liée
+
     private String description;
+
     private Integer nombreEquipes;
+
     private boolean active;
+
+    private Boolean isActive;
+
+    private CompetitionCategory categorie;
+
+    private CompetitionLevel niveau;
 }

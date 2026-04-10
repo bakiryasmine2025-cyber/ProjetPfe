@@ -27,6 +27,8 @@ public class Actualite {
     @Column(nullable = false)
     private String contenu;
 
+    private String categorie;
+
     private String urlImage;
 
     @Builder.Default

@@ -17,4 +17,6 @@ public class PartenaireResponse {
     private LocalDate dateFinContrat;
     private boolean actif;
     private LocalDateTime dateCreation;
+    private Double montant;
+    private String statut;
 }

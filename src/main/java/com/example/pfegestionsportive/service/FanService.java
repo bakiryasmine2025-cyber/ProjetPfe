@@ -18,7 +18,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,7 +43,7 @@ public class FanService {
         User user = getCurrentUser();
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club non trouvé"));
-        
+
         if (!user.getClubsSuivis().contains(club)) {
             user.getClubsSuivis().add(club);
             userRepository.save(user);
@@ -56,7 +55,7 @@ public class FanService {
         User user = getCurrentUser();
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club non trouvé"));
-        
+
         user.getClubsSuivis().remove(club);
         userRepository.save(user);
     }
@@ -73,7 +72,7 @@ public class FanService {
 
         // Get recent matches from followed clubs
         List<Match> matches = new ArrayList<>();
-        followedClubIds.forEach(id -> matches.addAll(matchRepository.findByClubId(id)));
+        followedClubIds.forEach(id -> matches.addAll(matchRepository.findByClub(id)));
 
         // Sort and map
         List<ActualiteResponse> actualiteResponses = actualites.stream()
@@ -109,16 +108,16 @@ public class FanService {
         return MatchResponse.builder()
                 .id(m.getId())
                 .competitionNom(m.getCompetition() != null ? m.getCompetition().getNom() : "Amical")
-                .equipeDomicile(m.getEquipeDomicile() != null ? m.getEquipeDomicile().getNom() : "?")
-                .equipeExterieur(m.getEquipeExterieur() != null ? m.getEquipeExterieur().getNom() : "?")
+                .equipeDomicileNom(m.getEquipeDomicile() != null ? m.getEquipeDomicile().getNom() : "?")
+                .equipeExterieureNom(m.getEquipeExterieur() != null ? m.getEquipeExterieur().getNom() : "?")
                 .dateMatch(m.getDateMatch())
                 .lieu(m.getLieu())
-                .score(m.getStatut() == MatchStatus.TERMINE
-                        ? (m.getScoreDomicile() != null ? m.getScoreDomicile() : 0) + " - " + (m.getScoreExterieur() != null ? m.getScoreExterieur() : 0)
-                        : "N/A")
+                .scoreDomicile(m.getScoreDomicile())
+                .scoreExterieur(m.getScoreExterieur())
                 .statut(m.getStatut().name())
                 .build();
     }
+
     public List<String> getClubsSuivisIds() {
         User user = getCurrentUser();
         return user.getClubsSuivis().stream()

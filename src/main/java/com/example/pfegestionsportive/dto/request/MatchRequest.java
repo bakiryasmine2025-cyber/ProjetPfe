@@ -15,4 +15,5 @@ public class MatchRequest {
     private Integer scoreExterieur;
     private MatchStatus statut;
     private String arbitreId;
+
 }

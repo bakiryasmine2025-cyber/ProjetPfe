@@ -16,4 +16,6 @@ public class LicenceResponse {
     private Boolean aptitudeMedicale;
     private String personneNom;
     private String clubNom;
+    private String motifRefus;
+    private String personneId;
 }

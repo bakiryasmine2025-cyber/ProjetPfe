@@ -41,9 +41,16 @@ public class Match {
     private Integer scoreExterieur;
 
     @Enumerated(EnumType.STRING)
-    private MatchStatus statut;
+    @Builder.Default
+
+    private MatchStatus statut=MatchStatus.TERMINE;
 
     @ManyToOne
     @JoinColumn(name = "arbitre_id")
     private Arbitre arbitre;
+
+
+
+
+
 }

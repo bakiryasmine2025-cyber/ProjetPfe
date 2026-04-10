@@ -1,6 +1,8 @@
 package com.example.pfegestionsportive.model.entity;
 
+import com.example.pfegestionsportive.model.enums.PartenaireStatut;
 import com.example.pfegestionsportive.model.enums.PartenaireType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -31,6 +33,7 @@ public class Partenaire {
 
     private LocalDate dateDebutContrat;
     private LocalDate dateFinContrat;
+    private Double montant;
 
     @Builder.Default
     private boolean actif = true;
@@ -41,4 +44,8 @@ public class Partenaire {
     @ManyToOne
     @JoinColumn(name = "club_id")
     private Club club;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PartenaireStatut statut = PartenaireStatut.EN_ATTENTE;
 }

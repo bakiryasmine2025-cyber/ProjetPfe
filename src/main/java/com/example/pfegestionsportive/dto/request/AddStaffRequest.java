@@ -16,4 +16,5 @@ public class AddStaffRequest {
     private String typeStaff;
     private String qualification;
     private Integer anneeExperience;
+    private String clubId;
 }

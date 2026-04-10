@@ -13,4 +13,5 @@ public class SaisonResponse {
     private LocalDate dateFin;
     private boolean active;
     private LocalDateTime dateCreation;
+    private String statut;
 }

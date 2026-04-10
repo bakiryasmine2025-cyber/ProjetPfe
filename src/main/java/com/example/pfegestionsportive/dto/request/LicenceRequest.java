@@ -8,8 +8,7 @@ import java.time.LocalDate;
 @Data
 public class LicenceRequest {
 
-    @NotBlank(message = "Le numéro de licence est obligatoire")
-    private String numero;
+
 
     @NotNull(message = "Le type de licence est obligatoire")
     private LicenceType type;

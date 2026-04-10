@@ -16,5 +16,6 @@ public class PartenaireRequest {
     private String siteWeb;
     private LocalDate dateDebutContrat;
     private LocalDate dateFinContrat;
+    private Double montant;
     private boolean actif;
 }

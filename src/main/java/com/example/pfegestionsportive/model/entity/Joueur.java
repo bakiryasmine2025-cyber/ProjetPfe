@@ -1,14 +1,10 @@
 package com.example.pfegestionsportive.model.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "joueurs")
@@ -23,9 +19,53 @@ public class Joueur extends Personne {
     private String saison;
     private String statut;
     private String poste;
-    private String age; // Note: Consider calculating this from dateNaissance
+    private String age;
+
+    private String cin;
+    private String numeroLicence;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean certificatMedical = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "club_id")
+    @JsonIgnoreProperties({"joueurs", "adminUser", "hibernateLazyInitializer"})
+    private Club club;
+
+    @Column(name = "nombre_matchs", nullable = false)
+    private int nombreMatchs = 5;
+
+    @Column(name = "nombre_buts", nullable = false)
+    private int nombreButs = 3;
+
+    @Column(name = "nombre_assists", nullable = false)
+    private int nombreAssists = 2;
+
+    @Column(name = "minutes_jouees", nullable = false)
+    private int minutesJouees = 6;
+
+    @Column(name = "plaquages_reussis", nullable = false)
+    private int plaquagesReussis = 7;
+
+    @Column(name = "fautes", nullable = false)
+    private int fautes = 4;
+
+    @Column(name = "cartons", nullable = false)
+    private int cartons = 3;
+
+
+    @Column(name = "vitesse", nullable = false)
+    private int vitesse = 8;
+
+    @Column(name = "endurance", nullable = false)
+    private int endurance = 4;
+
+    @Column(name = "force_joueur", nullable = false)
+    private int force = 6;
 
     @OneToOne
-    @JoinColumn(name = "licence_id")
+    @JoinColumn(name = "licence_joueur_id")
     private Licence licence;
+
 }

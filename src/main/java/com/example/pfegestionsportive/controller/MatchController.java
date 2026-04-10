@@ -1,53 +1,69 @@
 package com.example.pfegestionsportive.controller;
 
 import com.example.pfegestionsportive.dto.request.MatchRequest;
+import com.example.pfegestionsportive.dto.request.MatchResultRequest;
 import com.example.pfegestionsportive.dto.response.MatchResponse;
+import com.example.pfegestionsportive.model.enums.MatchStatus;
 import com.example.pfegestionsportive.service.MatchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/matches")
+@RequestMapping("/api/federation/matchs")
 @RequiredArgsConstructor
 public class MatchController {
 
     private final MatchService matchService;
 
-    // Public: Pour les Fans et tout le monde (Story 7.2)
     @GetMapping
-    public ResponseEntity<List<MatchResponse>> getAllMatches() {
-        return ResponseEntity.ok(matchService.getAllMatches());
+    public ResponseEntity<List<MatchResponse>> getAll() {
+        return ResponseEntity.ok(matchService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MatchResponse> getMatchById(@PathVariable String id) {
-        return ResponseEntity.ok(matchService.getMatchById(id));
+    public ResponseEntity<MatchResponse> getById(@PathVariable String id) {
+        return ResponseEntity.ok(matchService.getById(id));
     }
 
-    // Admin Federation: Pour planifier les matchs (Story 7.1)
+    @GetMapping("/competition/{competitionId}")
+    public ResponseEntity<List<MatchResponse>> getByCompetition(
+            @PathVariable String competitionId) {
+        return ResponseEntity.ok(matchService.getByCompetition(competitionId));
+    }
+
+    // ✅ 3.7 - Planifier match
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
-    public ResponseEntity<MatchResponse> createMatch(@RequestBody @Valid MatchRequest req) {
-        return ResponseEntity.ok(matchService.createMatch(req));
+    public ResponseEntity<MatchResponse> planifier(@RequestBody @Valid MatchRequest req) {
+        return ResponseEntity.ok(matchService.planifier(req));
     }
 
-    @PutMapping("/{id}")
+    // ✅ 3.8 - Enregistrer résultat
+    @PatchMapping("/{id}/resultat")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
-    public ResponseEntity<MatchResponse> updateMatch(
+    public ResponseEntity<MatchResponse> enregistrerResultat(
             @PathVariable String id,
-            @RequestBody MatchRequest req) {
-        return ResponseEntity.ok(matchService.updateMatch(id, req));
+            @RequestBody @Valid MatchResultRequest req) {
+        return ResponseEntity.ok(matchService.enregistrerResultat(id, req));
+    }
+
+    // Changer statut (REPORTE, ANNULE...)
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
+    public ResponseEntity<MatchResponse> changerStatut(
+            @PathVariable String id,
+            @RequestParam MatchStatus statut) {
+        return ResponseEntity.ok(matchService.changerStatut(id, statut));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
-    public ResponseEntity<Void> deleteMatch(@PathVariable String id) {
-        matchService.deleteMatch(id);
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        matchService.delete(id);
         return ResponseEntity.ok().build();
     }
 }
