@@ -1,5 +1,6 @@
 package com.example.pfegestionsportive.model.entity;
 
+import com.example.pfegestionsportive.model.enums.EquipeStatut;
 import com.example.pfegestionsportive.model.enums.Gender;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -21,15 +23,24 @@ public class Equipe {
     private String id;
 
     private String nom;
-
-    private String categorie; // SENIOR, JUNIOR, CADET, MINIME, ECOLE
+    private String categorie;
 
     @Enumerated(EnumType.STRING)
-    private Gender genre; // MASCULIN, FEMININ, MIXTE
+    private Gender genre;
+
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private EquipeStatut statut = EquipeStatut.EN_ATTENTE;
 
     @ManyToOne
     @JoinColumn(name = "club_id")
     private Club club;
+
+
+    @ManyToOne
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
 
     @ManyToMany
     @JoinTable(
@@ -37,5 +48,6 @@ public class Equipe {
             joinColumns = @JoinColumn(name = "equipe_id"),
             inverseJoinColumns = @JoinColumn(name = "joueur_id")
     )
-    private List<Joueur> joueurs;
+    @Builder.Default
+    private List<Joueur> joueurs = new ArrayList<>();
 }
