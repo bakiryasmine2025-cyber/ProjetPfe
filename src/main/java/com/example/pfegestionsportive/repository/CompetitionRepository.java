@@ -7,7 +7,11 @@ import java.util.List;
 
 @Repository
 public interface CompetitionRepository extends JpaRepository<Competition, String> {
+
     List<Competition> findAllByOrderByDateCreationDesc();
-    List<Competition> findBySaisonId(String saisonId);
+
+
+    List<Competition> findBySaison(String saison);
+
     List<Competition> findByActiveTrue();
 }

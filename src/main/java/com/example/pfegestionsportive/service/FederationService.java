@@ -10,6 +10,7 @@ import com.example.pfegestionsportive.repository.FederationRepository;
 import com.example.pfegestionsportive.repository.PartenaireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,7 +19,7 @@ import java.util.List;
 public class FederationService {
 
     private final FederationRepository federationRepository;
-    private final PartenaireRepository partenaireRepository; // ✅ ajouté
+    private final PartenaireRepository partenaireRepository;
 
     // ─────────────────────────────────────────
     // --- Paramètres fédération ---
@@ -54,7 +55,6 @@ public class FederationService {
     // --- Partenaires fédéraux (club = null) ---
     // ─────────────────────────────────────────
 
-    // ✅ Partenaires fédéraux = ceux sans club associé
     public List<PartenaireResponse> getPartenaires() {
         return partenaireRepository.findAll().stream()
                 .filter(p -> p.getClub() == null)
@@ -72,8 +72,9 @@ public class FederationService {
                 .siteWeb(req.getSiteWeb())
                 .dateDebutContrat(req.getDateDebutContrat())
                 .dateFinContrat(req.getDateFinContrat())
+                .montant(req.getMontant())
                 .actif(req.isActif())
-                .club(null) // ✅ fédéral = pas de club
+                .club(null)
                 .build();
         return toPartenaireResponse(partenaireRepository.save(partenaire));
     }
@@ -82,10 +83,8 @@ public class FederationService {
         Partenaire partenaire = partenaireRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
 
-        // ✅ Sécurité : on ne touche qu'aux partenaires fédéraux
-        if (partenaire.getClub() != null) {
+        if (partenaire.getClub() != null)
             throw new RuntimeException("Ce partenaire appartient à un club.");
-        }
 
         partenaire.setNom(req.getNom());
         partenaire.setType(req.getType());
@@ -95,6 +94,7 @@ public class FederationService {
         partenaire.setSiteWeb(req.getSiteWeb());
         partenaire.setDateDebutContrat(req.getDateDebutContrat());
         partenaire.setDateFinContrat(req.getDateFinContrat());
+        partenaire.setMontant(req.getMontant());
         partenaire.setActif(req.isActif());
 
         return toPartenaireResponse(partenaireRepository.save(partenaire));
@@ -104,10 +104,8 @@ public class FederationService {
         Partenaire partenaire = partenaireRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
 
-        // ✅ Sécurité : on ne supprime que les partenaires fédéraux
-        if (partenaire.getClub() != null) {
+        if (partenaire.getClub() != null)
             throw new RuntimeException("Ce partenaire appartient à un club.");
-        }
 
         partenaireRepository.delete(partenaire);
     }
@@ -118,12 +116,18 @@ public class FederationService {
 
     private FederationResponse toResponse(Federation f) {
         return FederationResponse.builder()
-                .id(f.getId()).nom(f.getNom()).nomCourt(f.getNomCourt())
-                .pays(f.getPays()).devise(f.getDevise())
+                .id(f.getId())
+                .nom(f.getNom())
+                .nomCourt(f.getNomCourt())
+                .pays(f.getPays())
+                .devise(f.getDevise())
                 .langueOfficielle(f.getLangueOfficielle())
-                .telephone(f.getTelephone()).emailContact(f.getEmailContact())
-                .siteWeb(f.getSiteWeb()).adresse(f.getAdresse())
-                .urlLogo(f.getUrlLogo()).statut(f.getStatut().name())
+                .telephone(f.getTelephone())
+                .emailContact(f.getEmailContact())
+                .siteWeb(f.getSiteWeb())
+                .adresse(f.getAdresse())
+                .urlLogo(f.getUrlLogo())
+                .statut(f.getStatut().name())
                 .anneeFondation(f.getAnneeFondation())
                 .dateCreation(f.getDateCreation())
                 .dateMiseAJour(f.getDateMiseAJour())
@@ -141,6 +145,8 @@ public class FederationService {
                 .siteWeb(p.getSiteWeb())
                 .dateDebutContrat(p.getDateDebutContrat())
                 .dateFinContrat(p.getDateFinContrat())
+                .montant(p.getMontant())
+                .dateCreation(p.getDateCreation())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)
                 .actif(p.isActif())
                 .build();

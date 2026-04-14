@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MatchService {
 
-    private final MatchRepository     matchRepository;
+    private final MatchRepository       matchRepository;
     private final CompetitionRepository competitionRepository;
-    private final EquipeRepository    equipeRepository;
-    private final ArbitreRepository   arbitreRepository; // ← badel UserRepository
+    private final EquipeRepository      equipeRepository;
+    private final ArbitreRepository     arbitreRepository;
 
     public MatchResponse planifier(MatchRequest req) {
         Competition competition = competitionRepository.findById(req.getCompetitionId())
@@ -47,7 +47,6 @@ public class MatchService {
             throw new RuntimeException("Conflit calendrier pour l'équipe extérieure : " +
                     conflitsExterieur.get(0).getDateMatch());
 
-        // ← Arbitre optionnel — cherche dans ArbitreRepository
         Arbitre arbitre = null;
         if (req.getArbitreId() != null && !req.getArbitreId().isBlank())
             arbitre = arbitreRepository.findById(req.getArbitreId()).orElse(null);
@@ -61,6 +60,36 @@ public class MatchService {
                 .lieu(req.getLieu())
                 .statut(MatchStatus.PROGRAMME)
                 .build();
+
+        return toResponse(matchRepository.save(match));
+    }
+
+    // ── UPDATE ──────────────────────────────────────────────────────────────
+    public MatchResponse update(String id, MatchRequest req) {
+        Match match = findById(id);
+
+        if (req.getCompetitionId() != null && !req.getCompetitionId().isBlank()) {
+            Competition competition = competitionRepository.findById(req.getCompetitionId())
+                    .orElseThrow(() -> new RuntimeException("Compétition introuvable"));
+            match.setCompetition(competition);
+        }
+        if (req.getEquipeDomicileId() != null && !req.getEquipeDomicileId().isBlank()) {
+            Equipe domicile = equipeRepository.findById(req.getEquipeDomicileId())
+                    .orElseThrow(() -> new RuntimeException("Équipe domicile introuvable"));
+            match.setEquipeDomicile(domicile);
+        }
+        if (req.getEquipeExterieurId() != null && !req.getEquipeExterieurId().isBlank()) {
+            Equipe exterieur = equipeRepository.findById(req.getEquipeExterieurId())
+                    .orElseThrow(() -> new RuntimeException("Équipe extérieure introuvable"));
+            match.setEquipeExterieur(exterieur);
+        }
+        if (req.getDateMatch() != null)      match.setDateMatch(req.getDateMatch());
+        if (req.getLieu() != null)           match.setLieu(req.getLieu());
+        if (req.getStatut() != null)         match.setStatut(req.getStatut());
+        if (req.getScoreDomicile() != null)  match.setScoreDomicile(req.getScoreDomicile());
+        if (req.getScoreExterieur() != null) match.setScoreExterieur(req.getScoreExterieur());
+        if (req.getArbitreId() != null && !req.getArbitreId().isBlank())
+            arbitreRepository.findById(req.getArbitreId()).ifPresent(match::setArbitre);
 
         return toResponse(matchRepository.save(match));
     }
@@ -114,7 +143,8 @@ public class MatchService {
                 .equipeExterieureId(m.getEquipeExterieur().getId())
                 .equipeExterieureNom(m.getEquipeExterieur().getNom())
                 .arbitreId(m.getArbitre() != null ? m.getArbitre().getId() : null)
-                .arbitreNom(m.getArbitre() != null ? m.getArbitre().getNom() + " " + m.getArbitre().getPrenom() : null)
+                .arbitreNom(m.getArbitre() != null
+                        ? m.getArbitre().getNom() + " " + m.getArbitre().getPrenom() : null)
                 .dateMatch(m.getDateMatch())
                 .lieu(m.getLieu())
                 .scoreDomicile(m.getScoreDomicile())

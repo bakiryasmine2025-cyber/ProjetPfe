@@ -45,7 +45,8 @@ public class SecurityConfig {
                         // ───────── PUBLIC ─────────
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/public/**"
+                                "/api/public/**",
+                                "/api/chat/**"
                         ).permitAll()
 
                         // ───────── SUPER ADMIN ─────────

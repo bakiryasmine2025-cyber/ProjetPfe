@@ -34,35 +34,35 @@ public class Joueur extends Personne {
     private Club club;
 
     @Column(name = "nombre_matchs", nullable = false)
-    private int nombreMatchs = 5;
+    private int nombreMatchs = 0;
 
     @Column(name = "nombre_buts", nullable = false)
-    private int nombreButs = 3;
+    private int nombreButs = 0;
 
     @Column(name = "nombre_assists", nullable = false)
-    private int nombreAssists = 2;
+    private int nombreAssists = 0;
 
     @Column(name = "minutes_jouees", nullable = false)
-    private int minutesJouees = 6;
+    private int minutesJouees = 0;
 
     @Column(name = "plaquages_reussis", nullable = false)
-    private int plaquagesReussis = 7;
+    private int plaquagesReussis = 0;
 
     @Column(name = "fautes", nullable = false)
-    private int fautes = 4;
+    private int fautes = 0;
 
     @Column(name = "cartons", nullable = false)
-    private int cartons = 3;
+    private int cartons = 0;
 
 
     @Column(name = "vitesse", nullable = false)
-    private int vitesse = 8;
+    private int vitesse = 0;
 
     @Column(name = "endurance", nullable = false)
-    private int endurance = 4;
+    private int endurance = 0;
 
     @Column(name = "force_joueur", nullable = false)
-    private int force = 6;
+    private int force = 0;
 
     @OneToOne
     @JoinColumn(name = "licence_joueur_id")

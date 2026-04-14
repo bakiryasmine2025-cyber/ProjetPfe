@@ -56,7 +56,6 @@ public class ClubAdminService {
                         || a.getAuthority().equals("ROLE_FEDERATION_ADMIN"));
     }
 
-    // Lit club_id depuis personnes (JOINED inheritance fix)
     private String getPersonneClubId(String personneId) {
         try {
             return jdbcTemplate.queryForObject(
@@ -65,7 +64,6 @@ public class ClubAdminService {
         } catch (Exception e) { return null; }
     }
 
-    // Lit club_id depuis equipes via SQL direct
     private String getEquipeClubId(String equipeId) {
         try {
             return jdbcTemplate.queryForObject(
@@ -90,7 +88,7 @@ public class ClubAdminService {
     }
 
     // ─────────────────────────────────────────
-    // --- Tous les joueurs avec club (federation) ---
+    // --- Tous les joueurs avec club ---
     // ─────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -139,11 +137,22 @@ public class ClubAdminService {
                 .club(club)
                 .poste(req.getPoste())
                 .categorie(req.getCategorie())
-                .cin(req.getCin())                                                    // ← zid
-                .numeroLicence(req.getNumeroLicence())                                // ← zid
-                .certificatMedical(req.getCertificatMedical() != null
-                        ? req.getCertificatMedical() : false)                        // ← zid
+                .cin(req.getCin())
+                .numeroLicence(req.getNumeroLicence())
+                .certificatMedical(req.getCertificatMedical() != null ? req.getCertificatMedical() : false)
                 .statut("EN_ATTENTE")
+                // ── Statistiques de performance ──────────────────────────
+                .nombreMatchs(req.getNombreMatchs())
+                .nombreButs(req.getNombreButs())
+                .nombreAssists(req.getNombreAssists())
+                .minutesJouees(req.getMinutesJouees())
+                .plaquagesReussis(req.getPlaquagesReussis())
+                .fautes(req.getFautes())
+                .cartons(req.getCartons())
+                // ── Attributs physiques ───────────────────────────────────
+                .vitesse(req.getVitesse())
+                .endurance(req.getEndurance())
+                .force(req.getForce())
                 .build();
         Joueur saved = joueurRepository.save(joueur);
         joueurRepository.updatePersonneClubId(saved.getId(), club.getId());
@@ -170,6 +179,21 @@ public class ClubAdminService {
         joueur.setEmail(req.getEmail());
         joueur.setPoste(req.getPoste());
         joueur.setCategorie(req.getCategorie());
+        joueur.setCin(req.getCin());
+        joueur.setNumeroLicence(req.getNumeroLicence());
+        joueur.setCertificatMedical(req.getCertificatMedical() != null ? req.getCertificatMedical() : false);
+        // ── Statistiques de performance ──────────────────────────────────
+        joueur.setNombreMatchs(req.getNombreMatchs());
+        joueur.setNombreButs(req.getNombreButs());
+        joueur.setNombreAssists(req.getNombreAssists());
+        joueur.setMinutesJouees(req.getMinutesJouees());
+        joueur.setPlaquagesReussis(req.getPlaquagesReussis());
+        joueur.setFautes(req.getFautes());
+        joueur.setCartons(req.getCartons());
+        // ── Attributs physiques ───────────────────────────────────────────
+        joueur.setVitesse(req.getVitesse());
+        joueur.setEndurance(req.getEndurance());
+        joueur.setForce(req.getForce());
         return joueurRepository.save(joueur);
     }
 
@@ -319,17 +343,14 @@ public class ClubAdminService {
         Equipe equipe = equipeRepository.findById(equipeId)
                 .orElseThrow(() -> new RuntimeException("Équipe introuvable"));
         verifierAppartenanceEquipe(equipeId);
-
         Joueur joueur = joueurRepository.findById(joueurId)
                 .orElseThrow(() -> new RuntimeException("Joueur introuvable"));
-
         if (!isSuperOrFedAdmin()) {
             String joueurClubId = getPersonneClubId(joueurId);
             String equipeClubId = getEquipeClubId(equipeId);
             if (joueurClubId == null || !joueurClubId.equals(equipeClubId))
                 throw new AccessDeniedException("Ce joueur n'appartient pas à votre club");
         }
-
         equipe.getJoueurs().add(joueur);
         return equipeRepository.save(equipe);
     }
@@ -372,6 +393,7 @@ public class ClubAdminService {
                 .siteWeb(req.getSiteWeb())
                 .dateDebutContrat(req.getDateDebutContrat())
                 .dateFinContrat(req.getDateFinContrat())
+                .montant(req.getMontant())
                 .actif(req.isActif())
                 .statut(PartenaireStatut.EN_ATTENTE)
                 .club(club)
@@ -402,6 +424,7 @@ public class ClubAdminService {
         partenaire.setSiteWeb(req.getSiteWeb());
         partenaire.setDateDebutContrat(req.getDateDebutContrat());
         partenaire.setDateFinContrat(req.getDateFinContrat());
+        partenaire.setMontant(req.getMontant());
         partenaire.setActif(req.isActif());
         return toPartenaireResponse(partenaireRepository.save(partenaire));
     }
@@ -429,19 +452,13 @@ public class ClubAdminService {
                     .nombrePartenaires(partenaireRepository.count())
                     .build();
         }
-
-        // ── FIX : findByEmailWithClub garantit JOIN FETCH du club ──────────
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmailWithClub(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
-
         if (user.getClub() == null)
             throw new RuntimeException("Compte non associé à un club.");
-
         Club club = user.getClub();
         String clubId = club.getId();
-        // ──────────────────────────────────────────────────────────────────
-
         return DashboardStatsResponse.builder()
                 .nomClub(club.getNom())
                 .nombreJoueurs(joueurRepository.findByClubId(clubId).size())
@@ -485,6 +502,7 @@ public class ClubAdminService {
                 .siteWeb(p.getSiteWeb())
                 .dateDebutContrat(p.getDateDebutContrat())
                 .dateFinContrat(p.getDateFinContrat())
+                .montant(p.getMontant())
                 .actif(p.isActif())
                 .dateCreation(p.getDateCreation())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)

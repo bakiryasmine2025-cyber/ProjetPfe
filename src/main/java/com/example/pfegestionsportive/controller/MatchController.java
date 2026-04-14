@@ -34,6 +34,14 @@ public class MatchController {
             @PathVariable String competitionId) {
         return ResponseEntity.ok(matchService.getByCompetition(competitionId));
     }
+    // ✅ Update match
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FEDERATION_ADMIN')")
+    public ResponseEntity<MatchResponse> update(
+            @PathVariable String id,
+            @RequestBody @Valid MatchRequest req) {
+        return ResponseEntity.ok(matchService.update(id, req));
+    }
 
     // ✅ 3.7 - Planifier match
     @PostMapping

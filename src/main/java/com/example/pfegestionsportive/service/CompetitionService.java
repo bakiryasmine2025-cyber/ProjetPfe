@@ -3,9 +3,7 @@ package com.example.pfegestionsportive.service;
 import com.example.pfegestionsportive.dto.request.CompetitionRequest;
 import com.example.pfegestionsportive.dto.response.CompetitionResponse;
 import com.example.pfegestionsportive.model.entity.Competition;
-import com.example.pfegestionsportive.model.entity.Saison;
 import com.example.pfegestionsportive.repository.CompetitionRepository;
-import com.example.pfegestionsportive.repository.SaisonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -16,68 +14,87 @@ import java.util.stream.Collectors;
 public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
-    private final SaisonRepository saisonRepository;
 
-    // ✅ 3.3 - Créer compétition
+    // ✅ Créer une compétition avec tous les nouveaux champs
     public CompetitionResponse create(CompetitionRequest req) {
-        Saison saison = null;
-        if (req.getSaisonId() != null)
-            saison = saisonRepository.findById(req.getSaisonId()).orElse(null);
-
         Competition c = Competition.builder()
                 .nom(req.getNom())
-                .categorie(req.getCategorie())
-                .niveau(req.getNiveau())
-                .saison(saison)
                 .description(req.getDescription())
+                .saison(req.getSaison())               // ✨ String direct mel front
                 .nombreEquipes(req.getNombreEquipes())
+                .dateDebut(req.getDateDebut())         // ✨ Champ jdid
+                .dateFin(req.getDateFin())             // ✨ Champ jdid
+                .categorie(req.getCategorie())
+                .typeRugby(req.getTypeRugby())         // ✨ Enum jdid
+                .categorieAge(req.getCategorieAge())   // ✨ Enum jdid
+                .niveau(req.getNiveau())
+                .genre(req.getGenre())                 // ✨ Enum jdid
                 .active(req.isActive())
                 .build();
 
         return toResponse(competitionRepository.save(c));
     }
 
+    // ✅ Récupérer toutes les compétitions
     public List<CompetitionResponse> getAll() {
         return competitionRepository.findAllByOrderByDateCreationDesc()
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
+    // ✅ Récupérer par ID
     public CompetitionResponse getById(String id) {
         return toResponse(findById(id));
     }
 
+    // ✅ Mettre à jour une compétition
     public CompetitionResponse update(String id, CompetitionRequest req) {
         Competition c = findById(id);
-        if (req.getNom() != null) c.setNom(req.getNom());
-        if (req.getCategorie() != null) c.setCategorie(req.getCategorie());
-        if (req.getNiveau() != null) c.setNiveau(req.getNiveau());
-        if (req.getDescription() != null) c.setDescription(req.getDescription());
-        if (req.getNombreEquipes() != null) c.setNombreEquipes(req.getNombreEquipes());
+
+        c.setNom(req.getNom());
+        c.setCategorie(req.getCategorie());
+        c.setTypeRugby(req.getTypeRugby());
+        c.setCategorieAge(req.getCategorieAge());
+        c.setNiveau(req.getNiveau());
+        c.setGenre(req.getGenre());
+        c.setSaison(req.getSaison());
+        c.setDescription(req.getDescription());
+        c.setNombreEquipes(req.getNombreEquipes());
+        c.setDateDebut(req.getDateDebut());
+        c.setDateFin(req.getDateFin());
         c.setActive(req.isActive());
-        if (req.getSaisonId() != null)
-            saisonRepository.findById(req.getSaisonId()).ifPresent(c::setSaison);
+
         return toResponse(competitionRepository.save(c));
     }
 
+    // ✅ Supprimer une compétition
     public void delete(String id) {
         competitionRepository.delete(findById(id));
     }
 
+    // Helper: Trouver l'entité ou Error 404
     private Competition findById(String id) {
         return competitionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compétition introuvable"));
     }
 
+    // ✅ Mapping Entity -> Response DTO
     private CompetitionResponse toResponse(Competition c) {
         return CompetitionResponse.builder()
-                .id(c.getId()).nom(c.getNom())
-                .categorie(c.getCategorie() != null ? c.getCategorie().name() : null)
-                .niveau(c.getNiveau() != null ? c.getNiveau().name() : null)
-                .saisonId(c.getSaison() != null ? c.getSaison().getId() : null)
-                .saisonNom(c.getSaison() != null ? c.getSaison().getNom() : null)
+                .id(c.getId())
+                .nom(c.getNom())
                 .description(c.getDescription())
+                .saison(c.getSaison())                // ✨ Retourne le string "2025-2026"
                 .nombreEquipes(c.getNombreEquipes())
+                .dateDebut(c.getDateDebut())
+                .dateFin(c.getDateFin())
                 .active(c.isActive())
+                .categorie(c.getCategorie() != null ? c.getCategorie().name() : null)
+                .typeRugby(c.getTypeRugby() != null ? c.getTypeRugby().name() : null)
+                .categorieAge(c.getCategorieAge() != null ? c.getCategorieAge().name() : null)
+                .niveau(c.getNiveau() != null ? c.getNiveau().name() : null)
+                .genre(c.getGenre() != null ? c.getGenre().name() : null)
                 .dateCreation(c.getDateCreation())
                 .build();
     }
